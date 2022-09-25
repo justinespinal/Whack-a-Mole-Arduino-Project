@@ -1,0 +1,636 @@
+boolean winWave;
+int buzzer;
+int led1;
+boolean led10n;
+int led2;
+boolean led2On;
+int led3;
+boolean led3On;
+int led4;
+boolean led4On;
+int led5;
+boolean led5On;
+int button1;
+int button2;
+int button3;
+int button4;
+int button5;
+
+int pointLED1;
+int pointLED2;
+int pointLED3;
+
+boolean gameEnd;
+boolean wonGame;
+
+long future;
+int points;
+int prevPoints;
+
+int leds[30];
+void setup()
+{
+  Serial.begin(9600);
+  led1 = 8;
+  led2 = 7;
+  led3 = 6;
+  led4 = 5;
+  led5 = 4;
+ 
+  pointLED1 = 11;
+  pointLED2 = 10;
+  pointLED3 = 9;
+  future = 0;
+
+  gameEnd = false;
+  wonGame = false;
+ 
+  pinMode(led1,OUTPUT);
+  pinMode(led2,OUTPUT);
+  pinMode(led3,OUTPUT);
+  pinMode(led4,OUTPUT);
+  pinMode(led5,OUTPUT);
+
+  button1 = A1;
+  button2 = A0;
+  button3 = 2;
+  button4 = 12;
+  button5 = 13;
+  pinMode(button1,INPUT);
+  pinMode(button2,INPUT);
+  pinMode(button3,INPUT);
+  pinMode(button4,INPUT);
+ 
+  buzzer = 3;
+  winWave = false;
+  pinMode(buzzer,OUTPUT);
+  points = 0;
+  randomSeed(analogRead(A5));
+
+  for(int i = 0; i < 30; i++)
+  {
+    leds[i] = random(4,9);
+  }
+ 
+}
+
+void loop()
+{
+  long ms = millis();
+  long seconds = ms/1000;
+  //Serial.print("gameEnd = ");
+  //Serial.println(gameEnd);
+  //Serial.print("seconds = ");
+  //Serial.println(seconds);  
+  if(gameEnd == false && winWave == false)
+  {
+    pointSystem();
+    minusPoints();
+    checkButtons();
+    checkPoints();
+    //int leds[] =  {   4,    5,    6,   7,    8,   5,   6,   8,   4,   7,   6,   8};
+    int durs[] =  {1000, 1000, 1000,1000, 1000, 500, 500, 500, 500, 500, 500, 500};
+    showMoles(leds, durs, 12);
+  }
+  if(gameEnd == true)
+  {
+    endGameMusic();
+  }
+  losingFactor();
+}
+void checkButtons()
+{
+  int b1State = digitalRead(button1);
+  int b2State = digitalRead(button2);
+  int b3State = digitalRead(button3);
+  int b4State = digitalRead(button4);
+  int b5State = digitalRead(button5);
+
+  Serial.print("b1State = ");
+  Serial.print(b1State);
+  Serial.print("b2State = ");
+  Serial.print(b2State);
+  Serial.print("b3State = ");
+  Serial.print(b3State);
+  Serial.print("b4State = ");
+  Serial.print(b4State);
+  Serial.print("b5State = ");
+  Serial.println(b5State);
+}
+void checkPoints()
+{
+  Serial.print("points = ");
+  Serial.println(points);
+}
+void minusPoints()
+{
+  long ms = millis();
+  long now = millis();
+  long sec = ms/1000;
+  int b1State = digitalRead(button1);
+  int b2State = digitalRead(button2);
+  int b3State = digitalRead(button3);
+  int b4State = digitalRead(button4);
+  int b5State = digitalRead(button5);
+ 
+  int l1State = digitalRead(led1);
+  int l2State = digitalRead(led2);
+  int l3State = digitalRead(led3);
+  int l4State = digitalRead(led4);
+  int l5State = digitalRead(led5);
+ 
+  if(b1State == 1 && now >= future && l1State == 0)
+  {
+    points-=1;
+    future = now + 1000;
+  }
+  else if(b2State == 1 && now >= future && l2State == 0)
+  {
+    points-=1;
+    future = now + 1000;
+  }
+  else if(b3State == 1 && now >= future && l3State == 0)
+  {
+    points-=1;
+    future = now + 1000;
+  }
+  else if(b4State == 1 && now >= future && l4State == 0)
+  {
+    points-=1;
+    future = now + 1000;
+  }
+  else if(b5State == 1 && now >= future && l5State == 0)
+  {
+    points-=1;
+    future = now + 1000;
+  }
+ 
+
+  if(now>=future)
+  {
+    noTone(buzzer);
+  }
+}
+
+/**
+ * playTones:  Plays an array of tones.  
+ * Each for a specified duration.
+ * The Arduino can do something else while calling this method.
+ *
+ * Precondtions:  1)  tones and durations have the same number of elements
+ *                2)  elements of durations are in milliseconds
+ *                3)  length is the length of tones and durations
+ */
+void showMoles(int tones[], int durations[], int length)
+{
+  int b1State = digitalRead(button1);
+  int b2State = digitalRead(button2);
+  int b3State = digitalRead(button3);
+  int b4State = digitalRead(button4);
+  int b5State = digitalRead(button5);
+  long now = millis();
+  if(sizeof(tones)/sizeof(int) == sizeof(durations)/sizeof(int))
+  {
+    long sum = 0;
+    for(int i = 0; i<length;i++)
+    {
+      sum += durations[i];
+    }
+    //calculate which index we should be working with
+    int musicI = 0;
+    for(musicI = 0; millis()%sum>=sumUntil(durations,musicI,length);musicI++)//super bananas
+    {    }
+    if(millis()%sum<sumUntil(durations,musicI,length))    //bananas
+    {
+      if(tones[musicI]!= 0&&now>=future)
+      {
+        turnOn1LED(tones[musicI]);
+
+        int currentLED = tones[musicI];
+        if(currentLED == 4 && b5State == 1 && now>=future)
+        {
+          points+=1;
+          digitalWrite(led5, LOW);
+          future = now + 1000;
+        }
+        if(currentLED == 5 && b4State == 1 && now>=future)
+        {
+          points+=1;
+          digitalWrite(led4, LOW);
+          future = now + 1000;
+        }
+        if(currentLED == 6 && b3State == 1 && now>=future)
+        {
+          points+=1;
+          digitalWrite(led3, LOW);
+          future = now + 1000;
+        }
+        if(currentLED == 7 && b2State == 1 && now>=future)
+        {
+          points+=1;
+          digitalWrite(led2, LOW);
+          future = now + 1000;
+        }
+        if(currentLED == 8 && b1State == 1 && now>=future)
+        {
+          points+=1;
+          digitalWrite(led1, LOW);
+          future = now + 1000;
+        }
+      }
+      else
+      {
+        digitalWrite(tones[musicI], LOW);
+      }
+    }
+  }
+}
+
+/**
+ * sumUntil:  returns the sum of all the values from 0 to index
+ * inside of arr
+ * This is a helper method for playTones
+ *
+ * Precondtions:  1)  0<=index<=length-1
+ *                2)  length is the length of arr
+ */
+long sumUntil(int arr[], int index,int length)
+{
+  long sum = 0;
+  for(int i = 0;i<=index;i++)
+  {
+    sum+=arr[i];
+  }
+  return sum;
+}
+void turnOn1LED(int led)
+{
+
+    digitalWrite(4, LOW);
+    digitalWrite(5, LOW);
+    digitalWrite(6, LOW);
+    digitalWrite(7, LOW);
+    digitalWrite(8, LOW);
+    digitalWrite(led,HIGH);
+ 
+}
+void pointSystem()
+{
+  if(points == 1)
+  {
+    analogWrite(pointLED1,22.5);
+    analogWrite(pointLED2,0);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 2)
+  {
+    analogWrite(pointLED1,45);
+    analogWrite(pointLED2,0);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 3)
+  {
+    analogWrite(pointLED1,67.5);
+    analogWrite(pointLED2,0);
+    analogWrite(pointLED3,0);
+  }
+   else if(points == 4)
+  {
+    analogWrite(pointLED1,90);
+    analogWrite(pointLED2,0);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 5)
+  {
+    analogWrite(pointLED1,112.5);
+    analogWrite(pointLED2,0);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 6)
+  {
+    analogWrite(pointLED1,135);
+    analogWrite(pointLED2,0);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 7)
+  {
+    analogWrite(pointLED1,157.5);
+    analogWrite(pointLED2,0);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 8)
+  {
+    analogWrite(pointLED1,180);
+    analogWrite(pointLED2,0);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 9)
+  {
+    analogWrite(pointLED1,202.5);
+    analogWrite(pointLED2,0);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 10)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,0);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 11)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,22.5);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 12)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,45);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 13)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,67.5);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 14)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,90);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 15)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,112.5);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 16)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,135);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 17)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,157.5);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 18)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,180);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 19)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,202.5);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 20)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,255);
+    analogWrite(pointLED3,0);
+  }
+  else if(points == 21)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,255);
+    analogWrite(pointLED3,22.5);
+  }
+  else if(points == 22)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,255);
+    analogWrite(pointLED3,45);
+  }
+  else if(points == 23)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,255);
+    analogWrite(pointLED3,67.5);
+  }
+  else if(points == 24)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,255);
+    analogWrite(pointLED3,90);
+  }
+  else if(points == 25)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,255);
+    analogWrite(pointLED3,112.5);
+  }
+  else if(points == 26)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,255);
+    analogWrite(pointLED3,135);
+  }
+  else if(points == 27)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,255);
+    analogWrite(pointLED3,157.5);
+  }
+  else if(points == 28)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,255);
+    analogWrite(pointLED3,180);
+  }
+  else if(points == 29)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,255);
+    analogWrite(pointLED3,202.5);
+  }
+  else if(points == 30)
+  {
+    analogWrite(pointLED1,255);
+    analogWrite(pointLED2,255);
+    analogWrite(pointLED3,255);
+  }
+ 
+}
+void losingFactor()
+{
+  long ms = millis();
+  long seconds = ms/1000;
+  if(points<30)
+  {
+    if(seconds>=120)
+    {
+      gameEnd = true;
+      wonGame = false;
+    }
+  }
+  if(points>=30)
+  {
+    if(seconds<120)
+    {
+      gameEnd = true;
+      wonGame = true;
+    }  
+  }  
+}
+void endGameMusic()
+{
+  long ms = millis();
+  long seconds = ms/1000;
+  if(gameEnd == true && wonGame == false)
+  {
+    if(ms%4000<500)
+    {
+      tone(buzzer,500.00);
+      digitalWrite(led1,HIGH);
+      digitalWrite(led2,HIGH);
+      digitalWrite(led3,HIGH);
+      digitalWrite(led4,HIGH);
+      digitalWrite(led5,HIGH);
+    }
+    else if(ms%4000<1000)
+    {
+      tone(buzzer,450.00);
+      digitalWrite(led1,LOW);
+      digitalWrite(led2,LOW);
+      digitalWrite(led3,LOW);
+      digitalWrite(led4,LOW);
+      digitalWrite(led5,LOW);
+    }
+    else if(ms%4000<1500)
+    {
+      tone(buzzer,400.00);
+      digitalWrite(led1,HIGH);
+      digitalWrite(led2,HIGH);
+      digitalWrite(led3,HIGH);
+      digitalWrite(led4,HIGH);
+      digitalWrite(led5,HIGH);
+    }
+    else if(ms%4000<2000)
+    {
+      tone(buzzer,350.00);
+      digitalWrite(led1,LOW);
+      digitalWrite(led2,LOW);
+      digitalWrite(led3,LOW);
+      digitalWrite(led4,LOW);
+      digitalWrite(led5,LOW);
+   }
+    else if(ms%4000<2500)
+   {
+      tone(buzzer,300.00);
+      digitalWrite(led1,HIGH);
+      digitalWrite(led2,HIGH);
+      digitalWrite(led3,HIGH);
+      digitalWrite(led4,HIGH);
+      digitalWrite(led5,HIGH);
+   }
+   else if(ms%4000<3000)
+   {
+     tone(buzzer,250.00);
+     digitalWrite(led1,LOW);
+     digitalWrite(led2,LOW);
+     digitalWrite(led3,LOW);
+     digitalWrite(led4,LOW);
+     digitalWrite(led5,LOW);
+   }
+   else if(ms%4000<3500)
+   {
+     tone(buzzer,200.00);
+     digitalWrite(led1,HIGH);
+     digitalWrite(led2,HIGH);
+     digitalWrite(led3,HIGH);
+     digitalWrite(led4,HIGH);
+     digitalWrite(led5,HIGH);
+   }
+   else
+   {
+     noTone(buzzer);
+     digitalWrite(led1,LOW);
+     digitalWrite(led2,LOW);
+     digitalWrite(led3,LOW);
+     digitalWrite(led4,LOW);
+     digitalWrite(led5,LOW);
+   }
+  }
+  else if(gameEnd == true && wonGame == true)
+  {
+    if(ms%4000<500)
+    {
+      tone(buzzer,200.00);
+      digitalWrite(led1,HIGH);
+      digitalWrite(led2,HIGH);
+      digitalWrite(led3,HIGH);
+      digitalWrite(led4,HIGH);
+      digitalWrite(led5,HIGH);
+    }
+    else if(ms%4000<1000)
+    {
+      tone(buzzer,250.00);
+      digitalWrite(led1,LOW);
+     digitalWrite(led2,LOW);
+     digitalWrite(led3,LOW);
+     digitalWrite(led4,LOW);
+     digitalWrite(led5,LOW);
+    }
+    else if(ms%4000<1500)
+    {
+      tone(buzzer,300.00);
+      digitalWrite(led1,HIGH);
+      digitalWrite(led2,HIGH);
+      digitalWrite(led3,HIGH);
+      digitalWrite(led4,HIGH);
+      digitalWrite(led5,HIGH);
+    }
+    else if(ms%4000<2000)
+    {
+      tone(buzzer,350.00);
+      digitalWrite(led1,LOW);
+     digitalWrite(led2,LOW);
+     digitalWrite(led3,LOW);
+     digitalWrite(led4,LOW);
+     digitalWrite(led5,LOW);
+   }
+    else if(ms%4000<2500)
+   {
+      tone(buzzer,400.00);
+      digitalWrite(led1,HIGH);
+      digitalWrite(led2,HIGH);
+      digitalWrite(led3,HIGH);
+      digitalWrite(led4,HIGH);
+      digitalWrite(led5,HIGH);
+   }
+   else if(ms%4000<3000)
+   {
+     tone(buzzer,450.00);
+     digitalWrite(led1,LOW);
+     digitalWrite(led2,LOW);
+     digitalWrite(led3,LOW);
+     digitalWrite(led4,LOW);
+     digitalWrite(led5,LOW);
+   }
+   else if(ms%4000<3500)
+   {
+     tone(buzzer,500.00);
+     digitalWrite(led1,HIGH);
+      digitalWrite(led2,HIGH);
+      digitalWrite(led3,HIGH);
+      digitalWrite(led4,HIGH);
+      digitalWrite(led5,HIGH);
+   }
+   else
+   {
+     noTone(buzzer);
+     digitalWrite(led1,LOW);
+     digitalWrite(led2,LOW);
+     digitalWrite(led3,LOW);
+     digitalWrite(led4,LOW);
+     digitalWrite(led5,LOW);
+   }
+  }    
+}  
